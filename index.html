@@ -1,0 +1,1242 @@
+
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<title>Toaletowy Skoczek</title>
+
+<style>
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+    background: #101827;
+    color: white;
+    touch-action: none;
+}
+
+#game {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: linear-gradient(#69c7ff, #d7f3ff);
+}
+
+canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    padding: 20px;
+    background: rgba(0,0,0,.72);
+    text-align: center;
+    z-index: 10;
+}
+
+.hidden {
+    display: none !important;
+}
+
+h1 {
+    font-size: clamp(30px, 7vw, 60px);
+    color: #fff;
+    text-shadow: 3px 4px #222;
+}
+
+h2 {
+    font-size: 30px;
+}
+
+button, select {
+    border: 0;
+    border-radius: 12px;
+    padding: 13px 22px;
+    font-size: 18px;
+    font-weight: bold;
+    color: #18202b;
+    background: #ffdf45;
+    cursor: pointer;
+    max-width: 90%;
+}
+
+button:active {
+    transform: scale(.95);
+}
+
+#hud {
+    position: absolute;
+    z-index: 4;
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    display: flex;
+    justify-content: space-between;
+    pointer-events: none;
+    font-size: 20px;
+    font-weight: bold;
+    text-shadow: 2px 2px 3px #222;
+}
+
+#controls {
+    position: absolute;
+    z-index: 5;
+    bottom: 20px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+}
+
+#jumpButton {
+    width: 150px;
+    height: 75px;
+    border-radius: 50px;
+    background: #ffdf45;
+    font-size: 23px;
+}
+
+#message {
+    font-size: 20px;
+    max-width: 500px;
+    line-height: 1.5;
+}
+
+.small {
+    font-size: 14px;
+    opacity: .85;
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+    <canvas id="canvas"></canvas>
+
+    <div id="hud" class="hidden">
+        <div id="score">Punkty: 0</div>
+        <div id="record">Rekord: 0</div>
+    </div>
+
+    <div id="controls" class="hidden">
+        <button id="jumpButton">SKOK!</button>
+    </div>
+
+    <!-- MENU GŁÓWNE -->
+
+    <div id="menu" class="screen">
+
+        <h1>🚽 TOALETOWY SKOCZEK</h1>
+
+        <p>Przeskakuj nad kibelkami i zdobywaj punkty!</p>
+
+        <label for="language">Język:</label>
+
+        <select id="language">
+            <option value="pl">Polski</option>
+            <option value="en">English</option>
+            <option value="de">Deutsch</option>
+            <option value="es">Español</option>
+            <option value="fr">Français</option>
+            <option value="it">Italiano</option>
+            <option value="pt">Português</option>
+            <option value="nl">Nederlands</option>
+            <option value="uk">Українська</option>
+            <option value="cs">Čeština</option>
+            <option value="ja">日本語</option>
+        </select>
+
+        <label for="city">Miasto:</label>
+
+        <select id="city">
+            <option value="warsaw">Warszawa</option>
+            <option value="newyork">Nowy Jork</option>
+            <option value="paris">Paryż</option>
+            <option value="tokyo">Tokio</option>
+            <option value="london">Londyn</option>
+            <option value="dubai">Dubaj</option>
+            <option value="rome">Rzym</option>
+            <option value="rio">Rio de Janeiro</option>
+        </select>
+
+        <label for="weather">Pogoda:</label>
+
+        <select id="weather">
+            <option value="sun">Słonecznie</option>
+            <option value="rain">Deszcz</option>
+            <option value="snow">Śnieg</option>
+            <option value="fog">Mgła</option>
+        </select>
+
+        <button id="startButton">ROZPOCZNIJ GRĘ</button>
+
+        <p class="small">
+            Sterowanie: dotknij ekranu, przycisku SKOK lub naciśnij SPACJĘ.
+        </p>
+
+    </div>
+
+    <!-- EKRAN PRZEGRANEJ -->
+
+    <div id="gameOver" class="screen hidden">
+
+        <h1>💥 KONIEC GRY!</h1>
+
+        <h2 id="finalScore">Wynik: 0</h2>
+
+        <p id="bestScore">Rekord: 0</p>
+
+        <button id="restartButton">ZAGRAJ PONOWNIE</button>
+
+        <button id="backButton">MENU GŁÓWNE</button>
+
+    </div>
+
+    <!-- EKRAN ZWYCIĘSTWA -->
+
+    <div id="victory" class="screen hidden">
+
+        <h1>🏆 WYGRAŁEŚ!</h1>
+
+        <h2>1000 PUNKTÓW!</h2>
+
+        <p>Jesteś mistrzem Toaletowego Skoczka!</p>
+
+        <button id="victoryRestart">ZAGRAJ PONOWNIE</button>
+
+        <button id="victoryMenu">MENU GŁÓWNE</button>
+
+    </div>
+
+</div>
+
+<script>
+
+/* =========================================
+   TOALETOWY SKOCZEK
+   GŁÓWNY SYSTEM GRY
+========================================= */
+
+
+/* ELEMENTY STRONY */
+
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+const menu = document.getElementById("menu");
+const gameOverScreen = document.getElementById("gameOver");
+const victoryScreen = document.getElementById("victory");
+
+const hud = document.getElementById("hud");
+const controls = document.getElementById("controls");
+
+const scoreText = document.getElementById("score");
+const recordText = document.getElementById("record");
+
+const finalScore = document.getElementById("finalScore");
+const bestScore = document.getElementById("bestScore");
+
+
+/* TŁUMACZENIA */
+
+const translations = {
+
+    pl: {
+        score: "Punkty",
+        record: "Rekord",
+        gameover: "KONIEC GRY!",
+        restart: "ZAGRAJ PONOWNIE",
+        jump: "SKOK!"
+    },
+
+    en: {
+        score: "Score",
+        record: "Record",
+        gameover: "GAME OVER!",
+        restart: "PLAY AGAIN",
+        jump: "JUMP!"
+    },
+
+    de: {
+        score: "Punkte",
+        record: "Rekord",
+        gameover: "SPIEL VORBEI!",
+        restart: "NOCHMAL SPIELEN",
+        jump: "SPRINGEN!"
+    },
+
+    es: {
+        score: "Puntos",
+        record: "Récord",
+        gameover: "¡FIN DEL JUEGO!",
+        restart: "JUGAR OTRA VEZ",
+        jump: "¡SALTA!"
+    },
+
+    fr: {
+        score: "Points",
+        record: "Record",
+        gameover: "FIN DU JEU!",
+        restart: "REJOUER",
+        jump: "SAUT!"
+    },
+
+    it: {
+        score: "Punti",
+        record: "Record",
+        gameover: "FINE DEL GIOCO!",
+        restart: "GIOCA ANCORA",
+        jump: "SALTA!"
+    },
+
+    pt: {
+        score: "Pontos",
+        record: "Recorde",
+        gameover: "FIM DE JOGO!",
+        restart: "JOGAR NOVAMENTE",
+        jump: "PULAR!"
+    },
+
+    nl: {
+        score: "Punten",
+        record: "Record",
+        gameover: "GAME OVER!",
+        restart: "OPNIEUW SPELEN",
+        jump: "SPRING!"
+    },
+
+    uk: {
+        score: "Очки",
+        record: "Рекорд",
+        gameover: "КІНЕЦЬ ГРИ!",
+        restart: "ГРАТИ ЗНОВУ",
+        jump: "СТРИБОК!"
+    },
+
+    cs: {
+        score: "Body",
+        record: "Rekord",
+        gameover: "KONEC HRY!",
+        restart: "HRÁT ZNOVU",
+        jump: "SKOK!"
+    },
+
+    ja: {
+        score: "スコア",
+        record: "記録",
+        gameover: "ゲームオーバー!",
+        restart: "もう一度遊ぶ",
+        jump: "ジャンプ!"
+    }
+
+};
+
+
+/* USTAWIENIA */
+
+let width = 0;
+let height = 0;
+
+let running = false;
+let gameFinished = false;
+
+let score = 0;
+let record = Number(localStorage.getItem("toaletowyRecord")) || 0;
+
+let speed = 6;
+let frame = 0;
+
+let selectedCity = "warsaw";
+let selectedWeather = "sun";
+let selectedLanguage = "pl";
+
+let obstacles = [];
+let particles = [];
+
+let weatherParticles = [];
+
+
+/* GRACZ */
+
+const player = {
+
+    x: 90,
+    y: 0,
+
+    width: 48,
+    height: 58,
+
+    velocityY: 0,
+
+    jumping: false,
+
+    grounded: true
+
+};
+
+
+/* FIZYKA */
+
+const gravity = 0.75;
+const jumpPower = -15;
+
+
+/* ROZMIAR CANVAS */
+
+function resizeCanvas() {
+
+    width = window.innerWidth;
+    height = window.innerHeight;
+
+    canvas.width = width * window.devicePixelRatio;
+    canvas.height = height * window.devicePixelRatio;
+
+    ctx.setTransform(
+        window.devicePixelRatio,
+        0,
+        0,
+        window.devicePixelRatio,
+        0,
+        0
+    );
+
+}
+
+window.addEventListener("resize", resizeCanvas);
+
+resizeCanvas();
+
+
+/* PODŁOGA */
+
+function groundY() {
+
+    return height - 95;
+
+}
+
+
+/* TŁO NIEBA */
+
+function drawSky() {
+
+    let gradient = ctx.createLinearGradient(
+        0, 0, 0, height
+    );
+
+    if (selectedWeather === "sun") {
+
+        gradient.addColorStop(0, "#48b8ff");
+        gradient.addColorStop(1, "#d5f4ff");
+
+    }
+
+    else if (selectedWeather === "rain") {
+
+        gradient.addColorStop(0, "#536c83");
+        gradient.addColorStop(1, "#9aafbd");
+
+    }
+
+    else if (selectedWeather === "snow") {
+
+        gradient.addColorStop(0, "#9dbbd2");
+        gradient.addColorStop(1, "#eff8ff");
+
+    }
+
+    else {
+
+        gradient.addColorStop(0, "#9daab0");
+        gradient.addColorStop(1, "#d4dadd");
+
+    }
+
+    ctx.fillStyle = gradient;
+
+    ctx.fillRect(0, 0, width, height);
+
+}
+
+
+/* SŁOŃCE */
+
+function drawSun() {
+
+    if (selectedWeather !== "sun") return;
+
+    ctx.fillStyle = "#ffe45c";
+
+    ctx.beginPath();
+
+    ctx.arc(width - 90, 90, 42, 0, Math.PI * 2);
+
+    ctx.fill();
+
+}
+
+
+/* CHMURY */
+
+function drawCloud(x, y, scale) {
+
+    ctx.fillStyle = "rgba(255,255,255,.8)";
+
+    ctx.beginPath();
+
+    ctx.arc(x, y, 22 * scale, 0, Math.PI * 2);
+    ctx.arc(x + 25 * scale, y - 10 * scale, 28 * scale, 0, Math.PI * 2);
+    ctx.arc(x + 55 * scale, y, 22 * scale, 0, Math.PI * 2);
+
+    ctx.fill();
+
+}
+
+
+/* MIASTA */
+
+function drawCity() {
+
+    const base = groundY();
+
+    ctx.fillStyle = "#70818c";
+
+    let buildings = [];
+
+    if (selectedCity === "warsaw") {
+
+        buildings = [
+            [40, 150], [130, 220], [220, 170],
+            [330, 250], [430, 160], [550, 210]
+        ];
+
+    }
+
+    else if (selectedCity === "newyork") {
+
+        buildings = [
+            [30, 250], [110, 320], [200, 230],
+            [300, 350], [410, 260], [520, 300]
+        ];
+
+    }
+
+    else if (selectedCity === "paris") {
+
+        buildings = [
+            [40, 120], [150, 140], [260, 110],
+            [370, 150], [480, 130]
+        ];
+
+    }
+
+    else if (selectedCity === "tokyo") {
+
+        buildings = [
+            [30, 190], [130, 260], [230, 210],
+            [340, 300], [460, 230], [570, 180]
+        ];
+
+    }
+
+    else if (selectedCity === "london") {
+
+        buildings = [
+            [30, 130], [140, 180], [250, 150],
+            [360, 220], [470, 160]
+        ];
+
+    }
+
+    else if (selectedCity === "dubai") {
+
+        buildings = [
+            [30, 190], [130, 260], [240, 370],
+            [350, 210], [470, 310]
+        ];
+
+    }
+
+    else if (selectedCity === "rome") {
+
+        buildings = [
+            [30, 120], [140, 150], [250, 130],
+            [360, 170], [480, 140]
+        ];
+
+    }
+
+    else if (selectedCity === "rio") {
+
+        buildings = [
+            [30, 130], [130, 180], [240, 140],
+            [350, 200], [460, 160]
+        ];
+
+    }
+
+    for (let i = 0; i < buildings.length; i++) {
+
+        let x = buildings[i][0] % width;
+        let h = buildings[i][1];
+
+        ctx.fillStyle = "#667b89";
+
+        ctx.fillRect(
+            x,
+            base - h,
+            75,
+            h
+        );
+
+        ctx.fillStyle = "#d9e8ee";
+
+        for (let y = base - h + 15; y < base - 10; y += 25) {
+
+            for (let xx = x + 10; xx < x + 65; xx += 22) {
+
+                ctx.fillRect(xx, y, 9, 12);
+
+            }
+
+        }
+
+    }
+
+    drawLandmark(base);
+
+}
+
+
+/* ZNANE BUDOWLE */
+
+function drawLandmark(base) {
+
+    ctx.save();
+
+    if (selectedCity === "warsaw") {
+
+        ctx.fillStyle = "#e5e5e5";
+
+        ctx.fillRect(width * .68, base - 240, 65, 240);
+
+        ctx.fillRect(width * .70, base - 270, 25, 30);
+
+        ctx.fillRect(width * .74, base - 300, 12, 30);
+
+    }
+
+    if (selectedCity === "paris") {
+
+        ctx.strokeStyle = "#5b4535";
+        ctx.lineWidth = 9;
+
+        ctx.beginPath();
+
+        ctx.moveTo(width * .7, base);
+        ctx.lineTo(width * .7 + 35, base - 210);
+        ctx.lineTo(width * .7 + 70, base);
+
+        ctx.stroke();
+
+        ctx.beginPath();
+
+        ctx.moveTo(width * .7 + 15, base - 80);
+        ctx.lineTo(width * .7 + 55, base - 80);
+
+        ctx.stroke();
+
+    }
+
+    if (selectedCity === "london") {
+
+        ctx.fillStyle = "#d6b15c";
+
+        ctx.fillRect(width * .7, base - 190, 70, 190);
+
+        ctx.fillRect(width * .72, base - 230, 30, 40);
+
+        ctx.fillRect(width * .735, base - 255, 12, 25);
+
+    }
+
+    if (selectedCity === "newyork") {
+
+        ctx.fillStyle = "#3b566e";
+
+        ctx.fillRect(width * .7, base - 210, 65, 210);
+
+        ctx.beginPath();
+
+        ctx.moveTo(width * .7, base - 210);
+        ctx.lineTo(width * .732, base - 270);
+        ctx.lineTo(width * .765, base - 210);
+
+        ctx.fill();
+
+    }
+
+    if (selectedCity === "tokyo") {
+
+        ctx.fillStyle = "#f3f3f3";
+
+        ctx.fillRect(width * .7, base - 230, 12, 230);
+        ctx.fillRect(width * .69, base - 180, 32, 8);
+        ctx.fillRect(width * .69, base - 130, 32, 8);
+        ctx.fillRect(width * .69, base - 80, 32, 8);
+
+    }
+
+    if (selectedCity === "dubai") {
+
+        ctx.fillStyle = "#c8b58b";
+
+        ctx.beginPath();
+
+        ctx.moveTo(width * .7, base);
+        ctx.lineTo(width * .735, base - 330);
+        ctx.lineTo(width * .77, base);
+
+        ctx.fill();
+
+    }
+
+    if (selectedCity === "rome") {
+
+        ctx.fillStyle = "#c9a27d";
+
+        ctx.fillRect(width * .7, base - 100, 90, 100);
+
+        ctx.fillStyle = "#806044";
+
+        for (let i = 0; i < 3; i++) {
+
+            ctx.beginPath();
+
+            ctx.arc(
+                width * .715 + i * 27,
+                base - 25,
+                10,
+                Math.PI,
+                0
+            );
+
+            ctx.fill();
+
+        }
+
+    }
+
+    if (selectedCity === "rio") {
+
+        ctx.fillStyle = "#6e8276";
+
+        ctx.beginPath();
+
+        ctx.arc(width * .7, base - 160, 45, 0, Math.PI * 2);
+
+        ctx.fill();
+
+        ctx.fillStyle = "#d9d0c2";
+
+        ctx.fillRect(width * .69, base - 160, 20, 80);
+
+    }
+
+    ctx.restore();
+
+}
+
+
+/* PODŁOŻE */
+
+function drawGround() {
+
+    const y = groundY();
+
+    ctx.fillStyle = "#4e9d48";
+
+    ctx.fillRect(0, y, width, 18);
+
+    ctx.fillStyle = "#777";
+
+    ctx.fillRect(0, y + 18, width, height - y);
+
+    ctx.fillStyle = "#aaa";
+
+    for (let x = 0; x < width; x += 80) {
+
+        ctx.fillRect(
+            (x - frame * speed) % width,
+            y + 45,
+            35,
+            5
+        );
+
+    }
+
+}
+
+
+/* GRACZ */
+
+function drawPlayer() {
+
+    const p = player;
+
+    ctx.save();
+
+    ctx.fillStyle = "#ffcf80";
+
+    ctx.fillRect(
+        p.x + 10,
+        p.y,
+        28,
+        28
+    );
+
+    ctx.fillStyle = "#168bd0";
+
+    ctx.fillRect(
+        p.x + 5,
+        p.y + 28,
+        38,
+        25
+    );
+
+    ctx.fillStyle = "#202020";
+
+    ctx.fillRect(
+        p.x + 18,
+        p.y + 10,
+        5,
+        5
+    );
+
+    ctx.fillRect(
+        p.x + 30,
+        p.y + 10,
+        5,
+        5
+    );
+
+    ctx.fillStyle = "#333";
+
+    ctx.fillRect(
+        p.x + 7,
+        p.y + 52,
+        15,
+        6
+    );
+
+    ctx.fillRect(
+        p.x + 28,
+        p.y + 52,
+        15,
+        6
+    );
+
+    ctx.restore();
+
+}
+
+
+/* KIBELEK */
+
+function drawToilet(o) {
+
+    ctx.save();
+
+    ctx.translate(o.x, o.y);
+
+    ctx.fillStyle = "#f4f4f4";
+
+    // Zbiornik
+
+    ctx.fillRect(18, 0, 36, 30);
+
+    // Deska
+
+    ctx.fillStyle = "#d9d9d9";
+
+    ctx.fillRect(5, 28, 55, 9);
+
+    // Muszla
+
+    ctx.fillStyle = "#fff";
+
+    ctx.beginPath();
+
+    ctx.ellipse(
+        32,
+        48,
+        30,
+        19,
+        0,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.fill();
+
+    // Noga
+
+    ctx.fillRect(22, 58, 21, 17);
+
+    // Cień
+
+    ctx.fillStyle = "rgba(0,0,0,.15)";
+
+    ctx.fillRect(5, 73, 55, 4);
+
+    ctx.restore();
+
+}
+
+
+/* SKOK */
+
+function jump() {
+
+    if (!running) return;
+
+    if (player.grounded) {
+
+        player.velocityY = jumpPower;
+
+        player.grounded = false;
+
+        player.jumping = true;
+
+    }
+
+}
+
+
+/* GENEROWANIE PRZESZKÓD */
+
+function createObstacle() {
+
+    let y = groundY() - 75;
+
+    obstacles.push({
+
+        x: width + 50,
+
+        y: y,
+
+        width: 65,
+
+        height: 78,
+
+        passed: false
+
+    });
+
+}
+
+
+/* KOLIZJE */
+
+function collision(a, b) {
+
+    return (
+
+        a.x + 10 < b.x + b.width - 8 &&
+
+        a.x + a.width - 5 > b.x + 8 &&
+
+        a.y + a.height - 5 > b.y + 10 &&
+
+        a.y + 5 < b.y + b.height
+
+    );
+
+}
+
+
+/* AKTUALIZACJA GRACZA */
+
+function updatePlayer() {
+
+    player.velocityY += gravity;
+
+    player.y += player.velocityY;
+
+    const floor = groundY() - player.height;
+
+    if (player.y >= floor) {
+
+        player.y = floor;
+
+        player.velocityY = 0;
+
+        player.grounded = true;
+
+        player.jumping = false;
+
+    }
+
+}
+
+
+/* AKTUALIZACJA PRZESZKÓD */
+
+function updateObstacles() {
+
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+
+        let o = obstacles[i];
+
+        o.x -= speed;
+
+        if (!o.passed && o.x + o.width < player.x) {
+
+            o.passed = true;
+
+            addPoint();
+
+        }
+
+        if (collision(player, o)) {
+
+            endGame();
+
+        }
+
+        if (o.x + o.width < 0) {
+
+            obstacles.splice(i, 1);
+
+        }
+
+    }
+
+}
+
+
+/* PUNKTY */
+
+function addPoint() {
+
+    score++;
+
+    updateHUD();
+
+    if (score >= 1000) {
+
+        winGame();
+
+        return;
+
+    }
+
+    if (score % 10 === 0) {
+
+        speed += 0.35;
+
+    }
+
+}
+
+
+/* HUD */
+
+function updateHUD() {
+
+    const t = translations[selectedLanguage];
+
+    scoreText.textContent = t.score + ": " + score;
+
+    recordText.textContent = t.record + ": " + record;
+
+}
+
+
+/* REKORD */
+
+function saveRecord() {
+
+    if (score > record) {
+
+        record = score;
+
+        localStorage.setItem(
+            "toaletowyRecord",
+            record
+        );
+
+    }
+
+}
+
+
+/* KONIEC GRY */
+
+function endGame() {
+
+    if (!running) return;
+
+    running = false;
+
+    gameFinished = true;
+
+    saveRecord();
+
+    finalScore.textContent = "Wynik: " + score;
+
+    bestScore.textContent = "Rekord: " + record;
+
+    hud.classList.add("hidden");
+
+    controls.classList.add("hidden");
+
+    gameOverScreen.classList.remove("hidden");
+
+}
+
+
+/* ZWYCIĘSTWO */
+
+function winGame() {
+
+    running = false;
+
+    gameFinished = true;
+
+    score = 1000;
+
+    saveRecord();
+
+    hud.classList.add("hidden");
+
+    controls.classList.add("hidden");
+
+    victoryScreen.classList.remove("hidden");
+
+}
+
+
+/* DESZCZ */
+
+function drawRain() {
+
+    if (selectedWeather !== "rain") return;
+
+    ctx.strokeStyle = "rgba(220,240,255,.7)";
+
+    ctx.lineWidth = 2;
+
+    for (let i = 0; i < 70; i++) {
+
+        let x = (i * 97 + frame * 8) % width;
+
+        let y = (i * 53 + frame * 12) % height;
+
+        ctx.beginPath();
+
+        ctx.moveTo(x, y);
+
+        ctx.lineTo(x - 5, y + 18);
+
+        ctx.stroke();
+
+    }
+
+}
+
+
+/* ŚNIEG */
+
+function drawSnow() {
+
+    if (selectedWeather !== "snow") return;
+
+    ctx.fillStyle = "white";
+
+    for (let i = 0; i < 70; i++) {
+
+        let x = (i * 73 + Math.sin(frame / 20 + i) * 20) % width;
+
+        let y = (i * 41 + frame * 1.5) % height;
+
+        ctx.beginPath();
+
+        ctx.arc(x, y, 3, 0, Math.PI * 2);
+
+        ctx.fill();
+
+    }
+
+}
+
+
+/* MGŁA */
+
+function drawFog() {
+
+    if (selectedWeather !== "fog") return;
+
+    ctx.fillStyle = "rgba(230,240,245,.35)";
+
+    ctx.fillRect(0, 0, width, height);
+
+    ctx.fillStyle = "rgba(240,245,250,.2)";
+
+    ctx.fillRect(0, height * .35, width, height * .3);
+
+}
+
+
+/* CHMURY */
+
+function drawClouds() {
+
+    drawCloud(
+        (width * .15 - frame * .3) % width,
+        100,
+        1
+    );
+
+    drawCloud(
+        (width * .55 - frame * .2) % width,
+        150,
+        .8
+    );
+
+    drawCloud(
+        (width * .85 - frame * .25) % width,
+        80,
+        1.1
+    );
+
+}
+
+
+/* RYSOWANIE WSZYSTKIEGO */
+
+function draw() {
+
+    ctx
